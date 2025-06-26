@@ -1,68 +1,72 @@
 // TrailPlugin: Allows drawing a "trail" of points on a Chart.js chart by clicking and dragging on the canvas
 
 const TrailPlugin = {
-  id: 'Trail', // Unique plugin ID
+  id: 'Trail',
 
-  // Called before the chart is initialized
-  // Sets up the trail state and mouse event listeners
+  // Initialize the plugin and set up mouse event listeners
   beforeInit(chart) {
-    // Store the drawing state and the list of trail points on the chart instance
     chart.trailState = {
-      drawing: false,      // True while the mouse is pressed and moving
-      trailPoints: [],     // Array of points in the trail
+      drawing: false,
+      trailPoints: [],
     };
 
     const canvas = chart.canvas;
 
-    // Listen for mouse down to start a new trail
-    canvas.addEventListener('mousedown', (e) => {
-      chart.trailState.drawing = true;
-      chart.trailState.trailPoints = []; // Clear any previous trail
-      const { x, y } = getRelativePosition(e, chart); // Get mouse position relative to canvas
-      // Convert pixel position to chart data values
-      const xValue = chart.scales.x.getValueForPixel(x);
-      const yValue = chart.scales.y.getValueForPixel(y);
-      // Add the starting point to the trail
-      chart.trailState.trailPoints.push({ x: xValue, y: yValue });
-      chart.update('none'); // Update chart without animation
-    });
+    // Define handlers as named functions so they can be removed later
+    chart._trailHandlers = {
+      mousedown: (e) => {
+        chart.trailState.drawing = true;
+        chart.trailState.trailPoints = [];
+        const { x, y } = getRelativePosition(e, chart);
+        const xValue = chart.scales.x.getValueForPixel(x);
+        const yValue = chart.scales.y.getValueForPixel(y);
+        chart.trailState.trailPoints.push({ x: xValue, y: yValue });
+        chart.update('none');
+      },
+      mousemove: (e) => {
+        if (!chart.trailState.drawing) return;
+        const { x, y } = getRelativePosition(e, chart);
+        const xValue = chart.scales.x.getValueForPixel(x);
+        const yValue = chart.scales.y.getValueForPixel(y);
+        chart.trailState.trailPoints.push({ x: xValue, y: yValue });
+        chart.update('none');
+      },
+      mouseup: () => {
+        chart.trailState.drawing = false;
+      },
+    };
 
-    // Listen for mouse move to add points to the trail while drawing
-    canvas.addEventListener('mousemove', (e) => {
-      if (!chart.trailState.drawing) return; // Only add points if drawing
-      const { x, y } = getRelativePosition(e, chart);
-      const xValue = chart.scales.x.getValueForPixel(x);
-      const yValue = chart.scales.y.getValueForPixel(y);
-      chart.trailState.trailPoints.push({ x: xValue, y: yValue });
-      chart.update('none');
-    });
-
-    // Listen for mouse up to stop drawing the trail
-    canvas.addEventListener('mouseup', () => {
-      chart.trailState.drawing = false;
-    });
+    // Add event listeners
+    canvas.addEventListener('mousedown', chart._trailHandlers.mousedown);
+    canvas.addEventListener('mousemove', chart._trailHandlers.mousemove);
+    canvas.addEventListener('mouseup', chart._trailHandlers.mouseup);
   },
 
-  // Called before datasets are drawn
-  // Draws the trail points and connecting lines on the chart canvas
+  // Remove event listeners when the chart is destroyed
+  beforeDestroy(chart) {
+    const canvas = chart.canvas;
+    if (canvas && chart._trailHandlers) {
+      canvas.removeEventListener('mousedown', chart._trailHandlers.mousedown);
+      canvas.removeEventListener('mousemove', chart._trailHandlers.mousemove);
+      canvas.removeEventListener('mouseup', chart._trailHandlers.mouseup);
+    }
+  },
+
+  // Draw the trail points and connecting lines before the datasets are drawn
   beforeDatasetsDraw(chart, args, pluginOptions) {
     const { ctx } = chart;
     const { trailPoints } = chart.trailState;
 
-    // If there are no points, do nothing
     if (!trailPoints || trailPoints.length === 0) return;
 
-    ctx.save(); // Save the current canvas state
-
-    // Get style options from pluginOptions or use defaults
+    ctx.save();
     const fillColor = pluginOptions?.trailFillColor || '#c7c7c7';
     const borderColor = pluginOptions?.trailBorderColor || '#9c9c9c';
     const borderWidth = pluginOptions?.trailBorderWidth || 1;
     const radius = pluginOptions?.trailRadius || 3;
 
-    // Draw each point in the trail as a circle
+    // Draw each point in the trail
     trailPoints.forEach((pt) => {
-      // Convert chart data values back to pixel positions
       const x = chart.scales.x.getPixelForValue(pt.x);
       const y = chart.scales.y.getPixelForValue(pt.y);
 
@@ -75,16 +79,16 @@ const TrailPlugin = {
       ctx.stroke();
     });
 
-    // Draw a line connecting all the trail points
+    // Draw line to connect the trail points
     if (trailPoints.length > 1) {
       ctx.beginPath();
       for (let i = 0; i < trailPoints.length; i++) {
         const x = chart.scales.x.getPixelForValue(trailPoints[i].x);
         const y = chart.scales.y.getPixelForValue(trailPoints[i].y);
         if (i === 0) {
-          ctx.moveTo(x, y); // Move to the first point
+          ctx.moveTo(x, y);
         } else {
-          ctx.lineTo(x, y); // Draw line to next point
+          ctx.lineTo(x, y);
         }
       }
       ctx.strokeStyle = borderColor;
@@ -92,22 +96,23 @@ const TrailPlugin = {
       ctx.stroke();
     }
 
-    ctx.restore(); // Restore the canvas state
+    ctx.restore();
   },
 
-  // Utility function to clear the trail programmatically
+  // Utility function to clear the trail manually
   clearTrail(chart) {
     if (chart.trailState) {
-      chart.trailState.trailPoints = []; // Remove all trail points
-      chart.update(); // Redraw the chart
+      chart.trailState.trailPoints = [];
+      chart.update();
     }
   },
 };
 
 // Helper function to get mouse position relative to the chart canvas
-// Returns an object with x and y properties in pixel coordinates
 function getRelativePosition(e, chart) {
-  const rect = chart.canvas.getBoundingClientRect();
+  const canvas = chart?.canvas || null;
+  if (!canvas) return { x: 0, y: 0 };
+  const rect = canvas.getBoundingClientRect();
   return {
     x: e.clientX - rect.left,
     y: e.clientY - rect.top,
