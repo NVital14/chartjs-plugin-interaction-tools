@@ -1,6 +1,6 @@
 {
   "name": "chartjs-plugin-interaction-tools",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Two Chart.js plugins: one for dragging points with a trail, and another for drawing freeform trails with the mouse.",
   "main": "dist/chartjs-plugin-interaction-tools.umd.js",
   "module": "dist/chartjs-plugin-interaction-tools.esm.js",
