@@ -7,7 +7,7 @@ This package provides two interactive plugins for [Chart.js](https://www.chartjs
 
 ---
 
-## ✨ Features
+## Features
 
 - Click-and-drag individual points
 - Visual trail of movement
@@ -17,7 +17,7 @@ This package provides two interactive plugins for [Chart.js](https://www.chartjs
 
 ---
 
-## 📦 Installation
+## Installation
 
 ```bash
 npm install chartjs-plugin-interaction-tools
@@ -25,7 +25,7 @@ npm install chartjs-plugin-interaction-tools
 
 ---
 
-## 🧩 Usage
+## Usage
 
 1. Register the plugins
 
@@ -66,7 +66,7 @@ const chart = new Chart(ctx, {
 
 ---
 
-## 🧹 Clearing the Trail
+## Clearing the Trail
 
 You can clear trails manually with:
 
@@ -77,7 +77,7 @@ trailPlugin.clearTrail(chart);
 
 ---
 
-## 🛠️ Advanced Options
+## Advanced Options
 
 Both plugins accept the following options under the `plugins` section of your chart config:
 
